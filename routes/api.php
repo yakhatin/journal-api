@@ -16,4 +16,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('/journal')->group(function () {
     Route::post('/', 'JournalController@get');
+    Route::post('/columns', 'JournalController@sendColumns');
 });

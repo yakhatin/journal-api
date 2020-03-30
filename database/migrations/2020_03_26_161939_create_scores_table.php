@@ -17,7 +17,8 @@ class CreateScoresTable extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained('students');
             $table->foreignId('subject_id')->constrained('subjects');
-            $table->integer('score')->default(0);
+            $table->foreignId('score_type')->constrained('score_types');
+            $table->integer('score')->nullable();
             $table->date('date');
             $table->timestamps();
         });

@@ -15,7 +15,7 @@ class JournalController extends Controller
         $this->model = $model;
     }
 
-    public function get(Request $request) {
+    private function getSpecificData(Request $request) {
         $whereData = [];
 
         // Фильтр по группе
@@ -29,23 +29,61 @@ class JournalController extends Controller
         }
 
         // Получаем все даты
-        $dates = DB::table('scores')->select('date')->groupBy('date')->get();
+        $dates = DB::table('scores')
+            ->select('scores.date', 'score_types.name AS score_type')
+            ->join('score_types', 'scores.score_type', '=', 'score_types.id')
+            ->groupBy('date', 'score_types.name')
+            ->get();
 
         $columns = [];
+
+        $dataSourceColumns = [
+            array(
+                'dataField' => 'name',
+                'caption' => 'ФИО',
+                'sortOrder' => 'asc'
+            )
+        ];
 
         // Динамичеиское формирование колонок с датой
         for ($i = 0; $i < count($dates); $i += 1) {
             $columnName = $dates[$i]->date;
-            array_push($columns, "MAX(CASE WHEN date LIKE '$columnName' THEN score END) AS '$columnName'");
+            $dxColumnType = $dates[$i]->score_type;
+            $defaultValue = $dates[$i]->score_type === 'boolean' ? 0 : 'NULL';
+            array_push($columns, "MAX(CASE WHEN date LIKE '$columnName' THEN score ELSE $defaultValue END) AS '$columnName'");
+            array_push(
+                $dataSourceColumns,
+                array(
+                    'dataField' => $columnName,
+                    'caption' => $columnName,
+                    'dataType' => $dxColumnType
+                )
+            );
         }
 
+        return (object) array(
+            'where' => $whereData,
+            'columns' => $columns,
+            'dataSourceColumns' => $dataSourceColumns
+        );
+    }
+
+    public function get(Request $request) {
+        $requestData = $this->getSpecificData($request);
+
         $result = DB::table('scores')
-            ->selectRaw('students.name, '.join(',', $columns))
+            ->selectRaw('students.name, '.join(',', $requestData->columns))
             ->join('students', 'scores.student_id', '=', 'students.id')
             ->groupBy('scores.student_id', 'students.name')
-            ->where($whereData)
+            ->where($requestData->where)
             ->get();
 
         $this->sendResponse($result, 'Ok', 200);
+    }
+
+    public function sendColumns(Request $request) {
+        $requestData = $this->getSpecificData($request);
+
+        $this->sendResponse($requestData->dataSourceColumns, 'Ok', 200);
     }
 }
