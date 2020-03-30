@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Group;
 use App\Score;
+use App\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -29,9 +31,11 @@ class JournalController extends Controller
         }
 
         // Получаем все даты
-        $dates = DB::table('scores')
+        $dates = DB::table('students')
             ->select('scores.date', 'score_types.name AS score_type', 'score_types.id AS score_type_id')
+            ->rightJoin('scores', 'scores.student_id', '=', 'students.id')
             ->join('score_types', 'scores.score_type', '=', 'score_types.id')
+            ->where($whereData)
             ->groupBy('date', 'score_types.name', 'score_types.id')
             ->get();
 
@@ -68,7 +72,6 @@ class JournalController extends Controller
         }
 
         return (object) array(
-            'where' => $whereData,
             'columns' => $columns,
             'dataSourceColumns' => $dataSourceColumns,
             'dataSourceColumnsObject' => $dataSourceColumnsObject
@@ -76,16 +79,40 @@ class JournalController extends Controller
     }
 
     public function get(Request $request) {
-        $requestData = $this->getSpecificData($request);
+        $specificData = $this->getSpecificData($request);
+        $subjectId = $request->subjectId;
+        $groupId = $request->groupId;
 
-        $result = DB::table('scores')
-            ->selectRaw('scores.student_id, students.name, '.join(',', $requestData->columns))
-            ->join('students', 'scores.student_id', '=', 'students.id')
-            ->groupBy('scores.student_id', 'students.name')
-            ->where($requestData->where)
-            ->get();
+        if($subjectId && $groupId) {
+            $isSubjectExists = Subject::find($subjectId);
 
-        $this->sendResponse($result, 'Ok', 200);
+            if (!$isSubjectExists) {
+                return $this->sendError("Предмет с идентфикатором $subjectId не существует", '403', []);
+            }
+
+            $isGroupExists = Group::find($groupId);
+
+            if (!$isGroupExists) {
+                return $this->sendError("Группа с идентфикатором $groupId не существует", '403', []);
+            }
+
+            $columns = array_merge(['students.id', 'students.name'], $specificData->columns);
+
+            $result = DB::table('students')
+                ->selectRaw(join(',', $columns))
+                ->leftJoin('scores', function ($join) use ($subjectId) {
+                    $join
+                        ->on('scores.student_id', '=', 'students.id')
+                        ->where('scores.subject_id', '=', $subjectId);
+                })
+                ->groupBy('students.id', 'students.name')
+                ->where('students.group_id', '=', $groupId)
+                ->get();
+
+            $this->sendResponse($result, 'Ok', 200);
+        } else {
+            $this->sendError('Переданы невалидные данные.', '403', []);
+        }
     }
 
     public function sendColumns(Request $request) {
