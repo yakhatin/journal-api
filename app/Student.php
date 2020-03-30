@@ -8,7 +8,7 @@ class Student extends Model
 {
     protected $visible = ['id', 'name'];
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'group_id'];
 
     public function scores() {
         return $this->hasMany(Score::class, 'student_id', 'id');

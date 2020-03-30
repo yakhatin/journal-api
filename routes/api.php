@@ -24,4 +24,12 @@ Route::prefix('/groups')->group(function () {
     Route::post('/', 'GroupController@get');
     Route::post('/delete', 'GroupController@delete');
     Route::post('/update', 'GroupController@update');
+    Route::post('/insert', 'GroupController@insert');
+});
+
+Route::prefix('/students')->group(function () {
+    Route::post('/', 'StudentController@get');
+    Route::post('/delete', 'StudentController@delete');
+    Route::post('/update', 'StudentController@update');
+    Route::post('/insert', 'StudentController@insert');
 });

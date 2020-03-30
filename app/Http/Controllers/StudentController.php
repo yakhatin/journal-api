@@ -2,21 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Group;
-use App\Http\Requests\GroupRequest;
+use App\Http\Requests\StudentRequest;
+use App\Student;
 use Illuminate\Http\Request;
 
-class GroupController extends Controller
+class StudentController extends Controller
 {
     public $model = null;
 
-    public function __construct(Group $model)
+    public function __construct(Student $model)
     {
         $this->model = $model;
     }
 
     public function get(Request $request) {
-        $result = $this->model->get();
+        $whereData = [];
+
+        if ($request->group_id) {
+            array_push($whereData, ['group_id', '=', $request->group_id]);
+        }
+
+        $result = $this->model
+            ->where($whereData)
+            ->get();
 
         $this->sendResponse($result, 'Ok', 200);
     }
@@ -31,7 +39,7 @@ class GroupController extends Controller
         }
     }
 
-    public function update(GroupRequest $request) {
+    public function update(StudentRequest $request) {
         if ($request->id) {
             $entity = $this->model->find($request->id);
 
@@ -50,7 +58,7 @@ class GroupController extends Controller
         }
     }
 
-    public function insert(GroupRequest $request) {
+    public function insert(StudentRequest $request) {
         $data = $request->validated();
 
         if ($data) {
