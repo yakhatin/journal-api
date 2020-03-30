@@ -30,9 +30,9 @@ class JournalController extends Controller
 
         // Получаем все даты
         $dates = DB::table('scores')
-            ->select('scores.date', 'score_types.name AS score_type')
+            ->select('scores.date', 'score_types.name AS score_type', 'score_types.id AS score_type_id')
             ->join('score_types', 'scores.score_type', '=', 'score_types.id')
-            ->groupBy('date', 'score_types.name')
+            ->groupBy('date', 'score_types.name', 'score_types.id')
             ->get();
 
         $columns = [];
@@ -41,9 +41,12 @@ class JournalController extends Controller
             array(
                 'dataField' => 'name',
                 'caption' => 'ФИО',
-                'sortOrder' => 'asc'
+                'sortOrder' => 'asc',
+                'allowEditing' => false
             )
         ];
+
+        $dataSourceColumnsObject = (object) array();
 
         // Динамичеиское формирование колонок с датой
         for ($i = 0; $i < count($dates); $i += 1) {
@@ -59,12 +62,16 @@ class JournalController extends Controller
                     'dataType' => $dxColumnType
                 )
             );
+            $dataSourceColumnsObject->$columnName = (object) array(
+                'score_type_id' => $dates[$i]->score_type_id
+            );
         }
 
         return (object) array(
             'where' => $whereData,
             'columns' => $columns,
-            'dataSourceColumns' => $dataSourceColumns
+            'dataSourceColumns' => $dataSourceColumns,
+            'dataSourceColumnsObject' => $dataSourceColumnsObject
         );
     }
 
@@ -72,7 +79,7 @@ class JournalController extends Controller
         $requestData = $this->getSpecificData($request);
 
         $result = DB::table('scores')
-            ->selectRaw('students.name, '.join(',', $requestData->columns))
+            ->selectRaw('scores.student_id, students.name, '.join(',', $requestData->columns))
             ->join('students', 'scores.student_id', '=', 'students.id')
             ->groupBy('scores.student_id', 'students.name')
             ->where($requestData->where)
@@ -85,5 +92,57 @@ class JournalController extends Controller
         $requestData = $this->getSpecificData($request);
 
         $this->sendResponse($requestData->dataSourceColumns, 'Ok', 200);
+    }
+
+    public function update(Request $request) {
+        $dataSourceColumnsObject = $this->getSpecificData($request)->dataSourceColumnsObject;
+        $keys = array_keys($request->values);
+
+        if ($request->id && $request->subjectId && count($keys) > 0) {
+            $studentId = $request->id;
+            $subjectId = $request->subjectId;
+            $values = $request->values;
+            $updateData = [];
+
+            for ($i = 0; $i < count($keys); $i += 1) {
+                 $key = $keys[$i];
+                 $r = $this->model
+                     ->where([
+                         ['date', '=', $key],
+                         ['student_id', '=', $studentId],
+                         ['subject_id', '=', $subjectId]
+                     ])
+                     ->first();
+                array_push(
+                    $updateData,
+                    (object) array(
+                        'id' => $r ? $r->id : null,
+                        'values' => array(
+                            'student_id' => $studentId,
+                            'subject_id' => $subjectId,
+                            'score' => $values[$key],
+                            'date' => $key,
+                            'score_type' => $dataSourceColumnsObject->$key->score_type_id
+                        )
+                    ));
+            }
+
+            for ($i = 0; $i < count($updateData); $i += 1) {
+                if ($updateData[$i]->id) {
+                    $this->model
+                        ->find($updateData[$i]->id)
+                        ->fill($updateData[$i]->values)
+                        ->push();
+                } else {
+                    $this->model
+                        ->fill($updateData[$i]->values)
+                        ->push();
+                }
+            }
+
+            $this->sendResponse($updateData, 'Ok', 200);
+        } else {
+            $this->sendError('Переданы невалидные данные.', '403', []);
+        }
     }
 }
