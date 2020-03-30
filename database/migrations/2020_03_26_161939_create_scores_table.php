@@ -15,9 +15,9 @@ class CreateScoresTable extends Migration
     {
         Schema::create('scores', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_id')->constrained('students');
-            $table->foreignId('subject_id')->constrained('subjects');
-            $table->foreignId('score_type')->constrained('score_types');
+            $table->foreignId('student_id')->constrained('students')->onDelete('cascade');;
+            $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');;
+            $table->foreignId('score_type')->constrained('score_types')->onDelete('cascade');;
             $table->integer('score')->nullable();
             $table->date('date');
             $table->timestamps();

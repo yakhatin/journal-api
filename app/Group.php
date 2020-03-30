@@ -11,6 +11,6 @@ class Group extends Model
     protected $fillable = ['name'];
 
     public function students () {
-        return $this->hasMany(Student::class, 'student_id', 'id');
+        return $this->hasMany(Student::class, 'group_id', 'id');
     }
 }

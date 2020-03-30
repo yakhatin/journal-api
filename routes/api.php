@@ -19,3 +19,9 @@ Route::prefix('/journal')->group(function () {
     Route::post('/columns', 'JournalController@sendColumns');
     Route::post('/update', 'JournalController@update');
 });
+
+Route::prefix('/groups')->group(function () {
+    Route::post('/', 'GroupController@get');
+    Route::post('/delete', 'GroupController@delete');
+    Route::post('/update', 'GroupController@update');
+});

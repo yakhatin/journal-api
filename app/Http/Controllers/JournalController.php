@@ -123,7 +123,7 @@ class JournalController extends Controller
                             'subject_id' => $subjectId,
                             'score' => $values[$key],
                             'date' => $key,
-                            'score_type' =>  $scoreType || isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : 1
+                            'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : $scoreType
                         )
                     ));
             }
