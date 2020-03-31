@@ -28,6 +28,11 @@ class JournalController extends Controller
             array_push($whereData, ['scores.subject_id', '=', $request->subjectId]);
         }
 
+        // Фильтр по типу предмета
+        if ($request->subjectTypeId) {
+            array_push($whereData, ['scores.subject_type', '=', $request->subjectTypeId]);
+        }
+
         // Получаем все даты
         $dates = DB::table('students')
             ->select('scores.date', 'score_types.name AS score_type', 'score_types.id AS score_type_id')
@@ -80,8 +85,9 @@ class JournalController extends Controller
         $specificData = $this->getSpecificData($request);
         $subjectId = $request->subjectId;
         $groupId = $request->groupId;
+        $subjectTypeId = $request->subjectTypeId;
 
-        if($subjectId && $groupId) {
+        if($subjectId && $groupId && $subjectTypeId) {
             $isSubjectExists = Subject::find($subjectId);
 
             if (!$isSubjectExists) {
@@ -98,10 +104,13 @@ class JournalController extends Controller
 
             $result = DB::table('students')
                 ->selectRaw(join(',', $columns))
-                ->leftJoin('scores', function ($join) use ($subjectId) {
+                ->leftJoin('scores', function ($join) use ($subjectId, $subjectTypeId) {
                     $join
                         ->on('scores.student_id', '=', 'students.id')
-                        ->where('scores.subject_id', '=', $subjectId);
+                        ->where([
+                            ['scores.subject_id', '=', $subjectId],
+                            ['scores.subject_type', '=', $subjectTypeId]
+                        ]);
                 })
                 ->groupBy('students.id', 'students.name')
                 ->where('students.group_id', '=', $groupId)
@@ -123,11 +132,12 @@ class JournalController extends Controller
         $dataSourceColumnsObject = $this->getSpecificData($request)->dataSourceColumnsObject;
         $keys = array_keys($request->values);
 
-        if ($request->id && $request->subjectId && count($keys) > 0) {
+        if ($request->subjectTypeId && $request->id && $request->subjectId && count($keys) > 0) {
             $studentId = $request->id;
             $subjectId = $request->subjectId;
             $values = $request->values;
             $scoreType = $request->scoreType;
+            $subjectTypeId = $request->subjectTypeId;
             $updateData = [];
 
             for ($i = 0; $i < count($keys); $i += 1) {
@@ -136,7 +146,8 @@ class JournalController extends Controller
                      ->where([
                          ['date', '=', $key],
                          ['student_id', '=', $studentId],
-                         ['subject_id', '=', $subjectId]
+                         ['subject_id', '=', $subjectId],
+                         ['subject_type', '=', $subjectTypeId]
                      ])
                      ->first();
                 array_push(
@@ -146,6 +157,7 @@ class JournalController extends Controller
                         'values' => array(
                             'student_id' => $studentId,
                             'subject_id' => $subjectId,
+                            'subject_type' => $subjectTypeId,
                             'score' => $values[$key],
                             'date' => $key,
                             'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : $scoreType

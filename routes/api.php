@@ -40,3 +40,10 @@ Route::prefix('/subjects')->group(function () {
     Route::post('/update', 'SubjectController@update');
     Route::post('/insert', 'SubjectController@insert');
 });
+
+Route::prefix('/subject_types')->group(function () {
+    Route::post('/', 'SubjectTypeController@get');
+    Route::post('/delete', 'SubjectTypeController@delete');
+    Route::post('/update', 'SubjectTypeController@update');
+    Route::post('/insert', 'SubjectTypeController@insert');
+});
