@@ -138,6 +138,7 @@ class JournalController extends Controller
             $values = $request->values;
             $scoreType = $request->scoreType;
             $subjectTypeId = $request->subjectTypeId;
+            $isExercise = $request->isExercise;
             $updateData = [];
 
             for ($i = 0; $i < count($keys); $i += 1) {
@@ -160,7 +161,8 @@ class JournalController extends Controller
                             'subject_type' => $subjectTypeId,
                             'score' => $values[$key],
                             'date' => $key,
-                            'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : $scoreType
+                            'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : $scoreType,
+                            'is_exercise' => $isExercise ? $isExercise : 0
                         )
                     ));
             }

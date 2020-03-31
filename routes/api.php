@@ -47,3 +47,10 @@ Route::prefix('/subject_types')->group(function () {
     Route::post('/update', 'SubjectTypeController@update');
     Route::post('/insert', 'SubjectTypeController@insert');
 });
+
+Route::prefix('/exercises')->group(function () {
+    Route::post('/', 'ExerciseController@get');
+    Route::post('/delete', 'ExerciseController@delete');
+    Route::post('/update', 'ExerciseController@update');
+    Route::post('/insert', 'ExerciseController@insert');
+});

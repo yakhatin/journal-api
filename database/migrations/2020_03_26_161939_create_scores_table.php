@@ -19,6 +19,7 @@ class CreateScoresTable extends Migration
             $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');
             $table->foreignId('score_type')->constrained('score_types')->onDelete('cascade');
             $table->foreignId('subject_type')->constrained('subject_types')->onDelete('cascade');
+            $table->foreignId('exercise_id')->nullable()->constrained('exercises');
             $table->integer('score')->nullable();
             $table->date('date');
             $table->timestamps();
