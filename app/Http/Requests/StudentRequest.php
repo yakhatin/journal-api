@@ -6,6 +6,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StudentRequest extends FormRequest
 {
+    public $rules = [
+        'name' => 'required|string',
+        'group_id' => 'required|int'
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -18,10 +23,7 @@ class StudentRequest extends FormRequest
 
     public function rules()
     {
-        return [
-            'name' => 'required|string',
-            'group_id' => 'required|int'
-        ];
+        return [];
     }
 
     public function messages()

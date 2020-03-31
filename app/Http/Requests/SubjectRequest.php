@@ -4,10 +4,10 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class GroupRequest extends FormRequest
+class SubjectRequest extends FormRequest
 {
     public $rules = [
-        'name' => 'required|string',
+        'title' => 'required|string',
     ];
 
     /**
@@ -27,7 +27,7 @@ class GroupRequest extends FormRequest
     public function messages()
     {
         return [
-            'name.required' => 'Поле "Наименование группы" является обязательным.',
+            'title.required' => 'Поле "Наименование предмета" является обязательным.',
         ];
     }
 }

@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class JournalController extends Controller
 {
-    private $model;
-
     public function __construct(Score $model)
     {
         $this->model = $model;

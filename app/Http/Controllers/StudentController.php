@@ -6,13 +6,12 @@ use App\Http\Requests\StudentRequest;
 use App\Student;
 use Illuminate\Http\Request;
 
-class StudentController extends Controller
+class StudentController extends ApiController
 {
-    public $model = null;
-
-    public function __construct(Student $model)
+    public function __construct(Student $model, StudentRequest $request)
     {
         $this->model = $model;
+        $this->controllerRequest = $request;
     }
 
     public function get(Request $request) {
@@ -27,45 +26,5 @@ class StudentController extends Controller
             ->get();
 
         $this->sendResponse($result, 'Ok', 200);
-    }
-
-    public function delete(Request $request) {
-        if ($request->id) {
-            $this->model->find($request->id)->delete();
-
-            $this->sendResponse([], 'Запись успешно удалена', 204);
-        } else {
-            $this->sendError('Переданы невалидные данные.', '403', []);
-        }
-    }
-
-    public function update(StudentRequest $request) {
-        if ($request->id) {
-            $entity = $this->model->find($request->id);
-
-            if (!$entity) {
-                $this->sendError('Not Found', 404);
-            } else {
-                $data = $request->validated();
-
-                $entity->fill($data)->save();
-
-                $this->sendResponse($data, 'Запись успешно обновлена', 200);
-            }
-
-        } else {
-            $this->sendError('Переданы невалидные данные.', '403', []);
-        }
-    }
-
-    public function insert(StudentRequest $request) {
-        $data = $request->validated();
-
-        if ($data) {
-            $this->model->fill($data)->push();
-            return $this->sendResponse($data, 'Запись успешно создана.', 201);
-        } else {
-            $this->sendError('Переданы невалидные данные.', '403', []);
-        }
     }
 }

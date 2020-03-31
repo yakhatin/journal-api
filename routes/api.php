@@ -33,3 +33,10 @@ Route::prefix('/students')->group(function () {
     Route::post('/update', 'StudentController@update');
     Route::post('/insert', 'StudentController@insert');
 });
+
+Route::prefix('/subjects')->group(function () {
+    Route::post('/', 'SubjectController@get');
+    Route::post('/delete', 'SubjectController@delete');
+    Route::post('/update', 'SubjectController@update');
+    Route::post('/insert', 'SubjectController@insert');
+});
