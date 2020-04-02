@@ -54,3 +54,10 @@ Route::prefix('/exercises')->group(function () {
     Route::post('/update', 'ExerciseController@update');
     Route::post('/insert', 'ExerciseController@insert');
 });
+
+Route::prefix('/score_types')->group(function () {
+    Route::post('/', 'ScoreTypeController@get');
+    Route::post('/delete', 'ScoreTypeController@delete');
+    Route::post('/update', 'ScoreTypeController@update');
+    Route::post('/insert', 'ScoreTypeController@insert');
+});
