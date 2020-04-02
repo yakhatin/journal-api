@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exercise;
 use App\Group;
 use App\Score;
 use App\Subject;
@@ -16,6 +17,8 @@ class JournalController extends Controller
     }
 
     private function getSpecificData(Request $request) {
+        $selectColumns = ['scores.date', 'score_types.name AS score_type', 'score_types.id AS score_type_id'];
+        $groupColumns = ['date', 'score_types.name', 'score_types.id'];
         $whereData = [];
 
         // Фильтр по группе
@@ -33,13 +36,23 @@ class JournalController extends Controller
             array_push($whereData, ['scores.subject_type', '=', $request->subjectTypeId]);
         }
 
+        // Фильтр по упражнению
+        if ($request->isExercise) {
+            array_push($whereData, ['scores.exercise_id', '<>', null]);
+            array_push($selectColumns, 'exercises.name AS exercises_name');
+            array_push($groupColumns, 'exercises.id', 'exercises.name');
+        } else {
+            array_push($whereData, ['scores.exercise_id', '=', null]);
+        }
+
         // Получаем все даты
         $dates = DB::table('students')
-            ->select('scores.date', 'score_types.name AS score_type', 'score_types.id AS score_type_id')
-            ->rightJoin('scores', 'scores.student_id', '=', 'students.id')
+            ->selectRaw(join(',', $selectColumns))
+            ->join('scores', 'scores.student_id', '=', 'students.id')
             ->join('score_types', 'scores.score_type', '=', 'score_types.id')
+            ->leftJoin('exercises', 'scores.exercise_id', '=', 'exercises.id')
             ->where($whereData)
-            ->groupBy('date', 'score_types.name', 'score_types.id')
+            ->groupByRaw(join(',', $groupColumns))
             ->get();
 
         $columns = [];
@@ -57,10 +70,11 @@ class JournalController extends Controller
 
         // Динамичеиское формирование колонок с датой
         for ($i = 0; $i < count($dates); $i += 1) {
-            $columnName = $dates[$i]->date;
+            $sqlColumnName = $request->isExercise ? 'exercises.name' : 'date';
+            $columnName = $request->isExercise ? $dates[$i]->exercises_name : $dates[$i]->date;
             $dxColumnType = $dates[$i]->score_type;
             $defaultValue = $dates[$i]->score_type === 'boolean' ? 0 : 'NULL';
-            array_push($columns, "MAX(CASE WHEN date LIKE '$columnName' THEN score ELSE $defaultValue END) AS '$columnName'");
+            array_push($columns, "MAX(CASE WHEN $sqlColumnName LIKE '$columnName' THEN score ELSE $defaultValue END) AS '$columnName'");
             array_push(
                 $dataSourceColumns,
                 array(
@@ -101,6 +115,7 @@ class JournalController extends Controller
             }
 
             $columns = array_merge(['students.id', 'students.name'], $specificData->columns);
+            $groupBy = ['students.id', 'students.name'];
 
             $result = DB::table('students')
                 ->selectRaw(join(',', $columns))
@@ -112,7 +127,8 @@ class JournalController extends Controller
                             ['scores.subject_type', '=', $subjectTypeId]
                         ]);
                 })
-                ->groupBy('students.id', 'students.name')
+                ->leftJoin('exercises', 'scores.exercise_id', '=', 'exercises.id')
+                ->groupByRaw(join(',', $groupBy))
                 ->where('students.group_id', '=', $groupId)
                 ->get();
 
@@ -140,18 +156,37 @@ class JournalController extends Controller
             $subjectTypeId = $request->subjectTypeId;
             $isExercise = $request->isExercise;
             $updateData = [];
+            $exercises = array();
+
+            if ($isExercise) {
+                $exercises = Exercise::all()->toArray();
+            }
 
             for ($i = 0; $i < count($keys); $i += 1) {
-                 $key = $keys[$i];
-                 $r = $this->model
+                $key = $keys[$i];
+                $exerciseId = null;
+
+                if ($isExercise) {
+                    $exerciseIndex = array_search($key, array_column($exercises, 'name'));
+                    $exerciseId = $exerciseIndex !== false ? $exercises[$exerciseIndex]['id'] : null;
+                    if (!$exerciseId) {
+                        $createdExercise = Exercise::create([
+                            "name" => $key
+                        ]);
+                        $exerciseId = $createdExercise->id;
+                    }
+                }
+
+                $r = $this->model
                      ->where([
-                         ['date', '=', $key],
+                         $isExercise ? ['exercise_id', '=', $exerciseId] : ['date', '=', $key],
                          ['student_id', '=', $studentId],
                          ['subject_id', '=', $subjectId],
                          ['subject_type', '=', $subjectTypeId]
                      ])
                      ->first();
-                array_push(
+
+                 array_push(
                     $updateData,
                     (object) array(
                         'id' => $r ? $r->id : null,
@@ -160,9 +195,9 @@ class JournalController extends Controller
                             'subject_id' => $subjectId,
                             'subject_type' => $subjectTypeId,
                             'score' => $values[$key],
-                            'date' => $key,
-                            'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : $scoreType,
-                            'is_exercise' => $isExercise ? $isExercise : 0
+                            'date' => $isExercise ? null : $key,
+                            'score_type' => isset($dataSourceColumnsObject->$key) ? $dataSourceColumnsObject->$key->score_type_id : ($scoreType || 1),
+                            'exercise_id' => $exerciseId
                         )
                     ));
             }

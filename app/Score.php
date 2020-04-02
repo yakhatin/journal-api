@@ -8,7 +8,7 @@ class Score extends Model
 {
     protected $visible = ['id', 'score', 'date'];
 
-    protected $fillable = ['score', 'date', 'student_id', 'subject_id', 'score_type', 'subject_type', 'is_exercise'];
+    protected $fillable = ['score', 'date', 'student_id', 'subject_id', 'score_type', 'subject_type', 'exercise_id'];
 
     public function student() {
         return $this->belongsTo(Student::class, 'student_id', 'id');
